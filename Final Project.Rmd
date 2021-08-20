@@ -1,0 +1,661 @@
+---
+title: "Final Project"
+author: "Deshpande, Vedant Sunil"
+date: "6/18/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+### Load required packages
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(car)
+library(corrplot)
+library(ROCR)
+library(GGally)
+library(VGAM)
+library(faraway)
+```
+
+# Part A. Background and Data Exploration (EDA):
+
+## A.4. Import the red wine data set into your R system.
+```{r}
+# Load dataset
+red_wine <- read.csv("winequality-red.csv", sep = ";",header = T)
+head(red_wine)
+```
+## A.5. In your report, write a section to introduce the data set and give basic statistics.
+```{r}
+# Column structure and basic summary statistics
+str(red_wine)
+summary(red_wine)
+```
+```{r fig.height=8, fig.width=12}
+# Histogram and density plots
+par(mfrow = c(4,3))
+h1 <- ggplot(red_wine, aes(x=fixed.acidity)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey',bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h2 <- ggplot(red_wine, aes(x=volatile.acidity)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey',bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h3 <- ggplot(red_wine, aes(x=citric.acid)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h4 <- ggplot(red_wine, aes(x=residual.sugar)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h5 <- ggplot(red_wine, aes(x=chlorides)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h6 <- ggplot(red_wine, aes(x=free.sulfur.dioxide)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins =15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h7 <- ggplot(red_wine, aes(x=total.sulfur.dioxide)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h8 <- ggplot(red_wine, aes(x=density)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h9 <- ggplot(red_wine, aes(x=pH)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h10 <- ggplot(red_wine, aes(x=sulphates)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h11 <- ggplot(red_wine, aes(x=alcohol)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = 'grey', bins = 15) +
+            geom_density(alpha = 0.2, fill = "#FF6666")
+h12 <- ggplot(red_wine, aes(x=quality)) + 
+            geom_histogram(aes(), color='black', fill = 'grey', bins = 6, binwidth = 0.5)
+
+h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9 + h10 + h11 + h12
+```
+```{r fig.height=8, fig.width=12}
+# Boxplots to determine outliers
+par(mfrow=c(4,3))
+b1 <- ggplot(red_wine, aes(y=fixed.acidity)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b2 <- ggplot(red_wine, aes(y=volatile.acidity)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b3 <- ggplot(red_wine, aes(y=citric.acid)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b4 <- ggplot(red_wine, aes(y=residual.sugar)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b5 <- ggplot(red_wine, aes(y=chlorides)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b6 <- ggplot(red_wine, aes(y=free.sulfur.dioxide)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b7 <- ggplot(red_wine, aes(y=total.sulfur.dioxide)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b8 <- ggplot(red_wine, aes(y=density)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b9 <- ggplot(red_wine, aes(y=pH)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b10 <- ggplot(red_wine, aes(y=sulphates)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b11 <- ggplot(red_wine, aes(y=alcohol)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b12 <- ggplot(red_wine, aes(y=quality)) + 
+  		geom_boxplot(fill='#FF6666',outlier.colour = 'black',width=1,alpha=0.5) + xlim(-0.8,0.8)
+b1 + b2 + b3 + b4 + b5 + b6 + b7 + b8 + b9 + b10 + b11 + b12
+```
+
+# Part B. Visualization and initial models for a binary response
+## B.1. Create a new binary variable "excellent" following this rule:
+a. excellent = 1, if the quality rating >= 7
+b. excellent = 0, otherwise
+```{r}
+red_wine$excellent <- as.factor(ifelse(red_wine$quality>6,1,0))
+red_wine <- subset(red_wine,select = -c(quality))
+```
+
+## B.2. Calculate the proportion of excellent red wine (i.e., excellent == 1). Make a pie chart and write down your interpretation of the proportion.
+```{r}
+pie_l <- count(red_wine,excellent)
+pie_l <- pie_l %>%
+  arrange(desc(excellent)) %>%
+  mutate(lab.ypos = cumsum(n) - 0.5*n)
+pie_l$p <- round(pie_l$n/sum(pie_l$n),6)
+
+Excellent <- pie_l$excellent
+Count <- pie_l$n
+Proportion <- pie_l$p
+proportion <- data.frame(Excellent,Count,Proportion)
+proportion
+
+mycols <- c("#0073C2FF", "#CD534CFF")
+
+ggplot(pie_l, aes(x=103.5, y=n, fill=excellent)) +
+  geom_bar(stat="identity", color='white') +
+  coord_polar("y", start=0) + geom_text(aes(y = lab.ypos, label = scales::percent(p,accuracy=0.01)), color = "white") + scale_fill_manual(values = mycols) + theme_void()
+
+```
+## B.3. Make use of various visualization tools to inspect the association between the binary response “excellent” and each of the explanatory variables/predictors. In your report, include those for which you do see an association.
+
+```{r fig.height=8, fig.width=8}
+# Corrplot
+red_wine_adj <- red_wine
+red_wine_adj$excellent <- as.numeric(red_wine_adj$excellent)
+ggcorr(red_wine_adj, label = TRUE)
+```
+```{r fig.height=10, fig.width=12}
+par(mfrow=c(3,2))
+s1 <- ggplot(red_wine, aes(x=excellent, y=alcohol)) +
+  		geom_point(size=1,color='#990521')
+s2 <- ggplot(red_wine, aes(x=excellent, y=volatile.acidity)) +
+  		geom_point(size=1,color='#990521')
+s3 <- ggplot(red_wine, aes(x=excellent, y=sulphates)) +
+  		geom_point(size=1,color='#990521')
+s4 <- ggplot(red_wine, aes(x=excellent, y=citric.acid)) +
+  		geom_point(size=1,color='#990521')
+s5 <- ggplot(red_wine, aes(x=excellent, y=density)) +
+  		geom_point(size=1,color='#990521')
+
+s1 + s2 + s3 + s4 + s5
+```
+
+
+
+## B.4. Use “excellent” as the response, fit a linear model. What are your findings? Which variables are significant? Among those significant ones, which has a positive association with the quality? Summarize your findings in your report
+```{r}
+# Fit Linear Regression model
+model_lm <- lm(as.numeric(excellent)~.,red_wine)
+summary(model_lm)
+```
+All the variables are statistically significant with a p-value < 0.05, except for citric.acid, free.sulfur.dioxide and ph.
+Following variables have a positive coefficient, implying that increase in these variables will improve the chances of wine quality being excellent.
+fixed.acidity, residual.sugar, sulphates and alcohol
+Following variables have a negative coefficient, implying that increase in these variables will decrease the chances of wine quality being excellent.
+volatile.acidity, chlorides, total.sulfur.dioxide and density.
+
+## B.5. Repeat Item 4 but use a logistic regression model. Are your new findings the same as those in Item 4? Is there any difference? Give a summary in your report
+```{r}
+model_lg <- glm(excellent~.,data=red_wine,family='binomial')
+summary(model_lg)
+```
+The results obtained using Logistic Regression Model are similar to Linear Regression Model in terms of significance of variables. citric.acid, free.sulfur.dioxide and pH continue to be the variables with a p-value > 0.05.
+The sign is different for free.sulfur.dioxide (negative for Linear vs positive for Logistic). But since the coefficient is statistically insignificant, this discrepancy should not matter.
+Hence, we can conclude that both models provide similar results in terms of variable significance and positive/negative association.
+
+# Part C. Variable selection, interpretation, and prediction for a logistic model 
+
+## C.1 Start with the logistic regression model you have built in Part B. Are you able to “trim” it to achieve a smaller set of predictors? In this variable selection process, you may need to consider these techniques and issues: AIC/BIC, Chi-squared test, collinearity, and the domain knowledge for each variable (references: Lecture 3, pages 8-29). Present the methods you use and the final model in your report
+```{r}
+model_null <- glm(excellent ~ 1,family='binomial',red_wine)
+```
+
+```{r}
+# Stepwise selecting using AIC
+model_aic <- step(model_null,scope=list(lower=model_null,upper=model_lg), direction='both',trace=F)
+summary(model_aic)
+```
+The final model recommended by stepwise selection using AIC values is as follows:
+excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + 
+    chlorides + fixed.acidity + residual.sugar + density
+
+pH, citric.acid and free.sulfur.dioxide have been eliminated.
+
+```{r}
+# Stepwise selection using BIC
+model_bic <- step(model_null,scope=list(lower=model_null,upper=model_lg), direction='both', k=log(nrow(red_wine)), trace=FALSE)
+summary(model_bic)
+```
+The final model recommended by stepwise selection using BIC values is as follows:
+excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + fixed.acidity
+
+Stepwise selection using BIC always provided a more parsimonious model as it penalizes more in case of higher number of covariates. Thus, less number of variables are being recommended in this case as compared to stepwise selection using AIC.
+
+```{r}
+# Model selection based on p-values
+drop1(model_lg,test="Chi")
+```
+Model given by stepwise selection using AIC is same as the one above, if we remove variables with p-value > 0.05.
+
+Thus, we will be going ahead with the following model for further analysis.
+excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + fixed.acidity + residual.sugar + density
+```{r}
+# Final model
+model_final <- glm(excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + fixed.acidity + residual.sugar + density,family='binomial',red_wine)
+summary(model_final)
+```
+
+```{r fig.height=10, fig.width=10 }
+# Checking collinearity in the final model
+red_wine_adj <- red_wine
+red_wine_adj$excellent <- as.numeric(red_wine_adj$excellent)
+ggcorr(red_wine_adj, label = TRUE)
+```
+We see high collinearity between the following pairs:
+1. fixed.acidity - citric.acid
+2. fixed.acidity - density
+3. free.sulfur.dioxide - total.sulfur.dioxide
+
+Since citric.acid and free.sulfur.dioxide are not part of final mode, #1 and #3 is not an issue.
+For #2, we will now conduct a more sophisticated test to identify if this high collinearity is a concern.
+
+```{r}
+# Check multicollinearity
+car::vif(model_final)
+```
+
+As we can see, the VIF (variance inflation factor) is < 10 for all variables, the model does not possess any multi-collinearity issues.
+
+## C.2 Quantify and explain the influence of “alcohol”, “residual.sugar”, and “pH” on the wine quality, if they are in your final model.
+```{r}
+summary(model_final)
+```
+
+pH is not part for the final model, but alcohol and residual.sugar are.
+For every unit increase in alcohol, the log odds of wine being excellent increases by 0.78.
+For every unit increase in residual.sugar, the log odds of wine being excellent increases by 0.23.
+
+Log odds can be defined as log(p/(1-p)) where p is the probability of the event happening (wine being excellent in our case).
+
+## C.3 If we use the probability 0.5 as the threshold to determine whether or not a bottle of wine is “excellent”, produce a 2 by 2 similar to Slide 31 in Lecture 3. For this particular classification method, calculate its specificity and sensitivity. Should we move the threshold up or down? Please give your comments and insights
+
+```{r}
+# Predict probabilities
+predprob<-predict(model_final,type="response")
+
+# Outcome using 0.5 as cutoff probability
+predout<-ifelse(predprob<0.5,0,1)
+
+mtx <- data.frame(red_wine,predprob,predout)
+conf_mtx <- xtabs(~excellent+predout,mtx)
+conf_mtx
+```
+```{r}
+# Specificity and sensitivity
+spec  <- conf_mtx[1]/(conf_mtx[1] + conf_mtx[3])
+sens <- conf_mtx[4]/(conf_mtx[2] + conf_mtx[4])
+spec
+sens
+```
+```{r}
+# Varying threshold
+thresh<-seq(0.01,0.95,0.01)
+sensitivity<-specificity<-misc<-rep(NA,length(thresh))
+for(j in seq(along=thresh)){
+pp<-ifelse(mtx$predprob<thresh[j],0,1)
+
+xx<-xtabs(~excellent+pp,mtx)
+specificity[j]<-xx[1,1]/(xx[1,1]+xx[1,2])
+sensitivity[j]<-xx[2,2]/(xx[2,1]+xx[2,2])
+misc[j]=(xx[1,2]+xx[2,1])/sum(xx)
+
+}
+matplot(thresh,cbind(sensitivity,specificity,misc),type="l", xlab ="Threshold", ylab ="Proportion",lty =1:3,col=c("blue","violet","green"))
+legend("topright",legend = c("sensitivity","specificity","misclassification"),col = c("blue","violet","green"), lty=c(1,2,3))
+plot(1-specificity,sensitivity,type="l");abline(0,1,lty=2)
+```
+As cut-off probability increases, the misclassification rate decreases upto a certain point (~0,5) and then flattens out.
+Hence, we can continue using 0.5 as cut-off probability.
+## C.4 Produce the ROC curve for your final model and calculate its AUC (area under the curve). You may use one of the R packages described in this webpage, or you may use other tools as well
+
+```{r}
+# ROC Curve
+pred_lg <- prediction(predprob, red_wine$excellent)
+perf <- performance(pred_lg, "tpr", "fpr")
+plot(perf, colorize=TRUE)
+```
+```{r}
+# AUC
+unlist(slot(performance(pred_lg, "auc"), "y.values"))
+```
+An AUC value of 0.88 implies that the model does a good job of predicting whether a particular wine is excellent or not.
+
+## C.5 Predict the chance that the 1st bottle (the 1st row in the data set) is excellent, and give its 95% confidence interval. Do the same for the 268th bottle (the 268th row in the data set). Compare your prediction with the observed quality ratings. 
+```{r}
+# Create sample for 1st and 268th rows
+sample_1 <- red_wine[1,]
+sample_268 <- red_wine[268,]
+```
+```{r}
+# Predicting outcome for sample with 1st row
+predict(model_final,sample_1,type='response')
+pred_1 <- ifelse(predict(model_final,sample_1)>0.5,1,0)
+pred_1[[1]]
+
+# Probability and link prediction
+pred_l <- predict(model_final,sample_1,type='link',se=T)
+pred_p <- predict(model_final,sample_1,type='response',se=T)
+
+# Confidence interval
+round(ilogit(c(pred_l$fit-1.96*pred_l$se,pred_l$fit+1.96*pred_l$se)),4)
+```
+
+
+```{r}
+# Predicting outcome for sample with 1st row
+predict(model_final,sample_268,type="response")[[1]]
+pred_268 <- ifelse(predict(model_final,sample_268)>0.5,1,0)
+pred_268[[1]]
+
+# Probability and link prediction
+pred_l <- predict(model_final,sample_268,type='link',se=T)
+pred_p <- predict(model_final,sample_268,type='response',se=T)
+
+# Confidence interval
+round(ilogit(c(pred_l$fit-1.96*pred_l$se,pred_l$fit+1.96*pred_l$se)),4)
+```
+```{r}
+# Comparing the predicted quality with observed quality
+red_wine[1,12]
+red_wine[268,12]
+```
+Using the model generated above, we predicted the value of excellent quality for 1st row sample to be 0 and 1 for 268th  sample.
+This is consistent with the observed qualities for both these samples.
+
+The 95% confidence interval for 1st row sample is: 0.0045 - 0.0131
+For 268th row sample: 0.4853 - 0.7525
+
+# Part D. Link functions and dispersion parameter
+
+## D.1 Start with the final logistic regression model you have selected in Part C. A wine expert may ask: why do you think the logit link is appropriate? Is it possible that other link functions give better result? To answer these questions, do the following.
+
+### D.1.a Fit another two models using the probit and complementary log-log links (with the same set of variables in your final logistic regression model).
+```{r}
+# Fit models using all links
+model_l <- glm(excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + fixed.acidity + residual.sugar + density,family='binomial'(link=logit),red_wine)
+summary(model_l)
+
+model_p <- glm(excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + fixed.acidity + residual.sugar + density,family='binomial'(link=probit),red_wine)
+summary(model_p)
+
+model_c <- glm(excellent ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + fixed.acidity + residual.sugar + density,family='binomial'(link=cloglog),red_wine)
+summary(model_c)
+```
+### D.1.b Compare the three models with respect to the significance, sign, and size of each variable
+```{r}
+# Comparing coefficients
+variables <- c("Intercept","alcohol",'volatile.acidity','sulphates','total.sulfur.dioxide', 'chlorides', 'fixed.acidity', 'residual.sugar', 'density')
+coefs <- data.frame("Variables"=variables,"Logit"=NA,"Probit"=NA,"Cloglog"=NA)
+for (i in 1:9) {
+	coefs[i,2]= round(coef(model_l)[[i]],3)
+	coefs[i,3]= round(coef(model_p)[[i]],3)
+	coefs[i,4]= round(coef(model_c)[[i]],3)
+}
+coefs
+```
+All the variables in all 3 models are significant with a p-value < 0.05.
+
+The signs of all coefficients are consistent across all 3 models. 
+alcohol, sulphates, fixed.acidity and residual.sugar having positive association while other negative.
+
+The size of coefficients vary across the models. The absolute value of coefficients seem to follow the pattern: logit > cloglog > probit.
+
+### Compare the three models with respect to their predictive power. For example, you can compare the three ROCs and AUCs. You can also visually compare their predictions for those excellent wines as we are particularly interested in identifying them
+
+```{r}
+# Predict probabilities for all models
+red_wine_n <- red_wine
+
+# Predict values for final selected models
+
+# Logit
+red_wine_n$predprob_l <- predict(model_l,type='response')
+red_wine_n$pred_l <- ifelse(red_wine_n$predprob_l > 0.50, 1, 0)
+red_wine_n$pred_l <- as.factor(red_wine_n$pred_l)
+pred_roc_l <- prediction(red_wine_n$predprob_l, red_wine_n$excellent)
+
+# Probit
+red_wine_n$predprob_p <- predict(model_p,type='response')
+red_wine_n$pred_p <- ifelse(red_wine_n$predprob_p > 0.50, 1, 0)
+red_wine_n$pred_p <- as.factor(red_wine_n$pred_p)
+pred_roc_p <- prediction(red_wine_n$predprob_p, red_wine_n$excellent)
+
+# Complementary log-log
+red_wine_n$predprob_c <- predict(model_c, type='response')
+red_wine_n$pred_c <- ifelse(red_wine_n$predprob_c > 0.50, 1, 0)
+red_wine_n$pred_c <- as.factor(red_wine_n$pred_c)
+pred_roc_c <- prediction(red_wine_n$predprob_c, red_wine_n$excellent)
+```
+
+```{r}
+# Specificity and sensitivity
+thresh = seq(0.01,0.5,0.01)
+
+sensitivity_l<- specificity_l<- rep( NA,length (thresh))
+sensitivity_p<- specificity_p<- rep( NA,length (thresh))
+sensitivity_c<- specificity_c<- rep( NA,length (thresh))
+
+for (j in seq(along=thresh)){
+
+pp_l=ifelse(red_wine_n$predprob_l<thresh[j],0,1)
+xx_l= xtabs(~excellent+pp_l,red_wine_n)
+specificity_l[j]= xx_l[1,1]/(xx_l[1,1]+xx_l[1,2])
+sensitivity_l[j]= xx_l[2,2]/(xx_l[2,1]+xx_l[2,2])
+  
+pp_p=ifelse(red_wine_n$predprob_p<thresh[j],0,1)
+xx_p= xtabs(~excellent+pp_p,red_wine_n)
+specificity_p[j]= xx_p[1,1]/(xx_p[1,1]+xx_p[1,2])
+sensitivity_p[j]= xx_p[2,2]/(xx_p[2,1]+xx_p[2,2])
+
+pp_c=ifelse(red_wine_n$predprob_c<thresh[j],0,1)
+xx_c= xtabs(~excellent+pp_c,red_wine_n)
+specificity_c[j]= xx_c[1,1]/(xx_c[1,1]+xx_c[1,2])
+sensitivity_c[j]= xx_c[2,2]/(xx_c[2,1]+xx_c[2,2])
+}
+```
+
+
+```{r}
+# ROC curves
+plot(1-specificity_l,sensitivity_l,type="l",,lty=1,col="blue",xlab ="1-Specificity", ylab ="Sensitivity"); abline (coef=c(0,1))
+points(1-specificity_p,sensitivity_p,type="l",lty=1,col="red")
+points(1-specificity_c,sensitivity_c,type="l",lty=1,col="green")
+```
+
+```{r}
+perf_l <- performance(pred_roc_l, "tpr", "fpr")
+perf_p <- performance(pred_roc_p, "tpr", "fpr")
+perf_c <- performance(pred_roc_c, "tpr", "fpr")
+```
+```{r}
+# AUC
+unlist(slot(performance(pred_roc_l, "auc"), "y.values"))
+unlist(slot(performance(pred_roc_p, "auc"), "y.values"))
+unlist(slot(performance(pred_roc_c, "auc"), "y.values"))
+```
+As we can see, the ROC curves and AUC values are almost same for all models. We will now look at predictive power of each model.
+
+```{r}
+# Misclassification rate for all models
+misc_l <- table(red_wine_n$excellent, red_wine_n$pred_l, dnn=c("Truth","Predicted"))
+miscr_l <- (misc_l[1,2] + misc_l[2,1])/sum(misc_l)
+
+misc_p <- table(red_wine_n$excellent, red_wine_n$pred_p, dnn=c("Truth","Predicted"))
+miscr_p <- (misc_p[1,2] + misc_p[2,1])/sum(misc_p)
+
+misc_c <- table(red_wine_n$excellent, red_wine_n$pred_c, dnn=c("Truth","Predicted"))
+miscr_c <- (misc_c[1,2] + misc_c[2,1])/sum(misc_c)
+
+miscr_l
+miscr_p
+miscr_c
+```
+The misclassification rate is also very similar for all 3 models.
+
+On comparing various metrics for 3 models, we could not find stark difference between any of those and all of them seem to perform equally well.
+Thus, we will go ahead wit the default link option of logit for better interpretability.
+
+## D.2. Do you think the default value of the dispersion parameter being 1 can be reasonably used in the wine analysis? If not, do the following.
+
+### D.2.a Adjust the dispersion parameter to give a better fit. 
+
+```{r}
+# Calculate dispersion paramter
+sigma.squared<-sum(residuals(model_l, type="pearson")^2)/(nrow(red_wine)-9)
+sigma.squared
+```
+The updated dispersion parameter is 0.841
+
+### D.2.b Report the final model with the updated dispersion parameter.
+```{r}
+# Updated model with dispersion parameter
+summary(model_l,dispersion=sigma.squared)
+```
+### D.2.c Explain to a wine expert what inference has changed and what remains the same.
+On using the dispersion parameter calculated earlier, the standard error for all coefficients has reduced (since the dispersion paramter is < 1).
+p-value has also changed but all variables are statistically significant in new model also.
+
+The coefficient estimates have not changed, in the new model. They remain constant, irrespective of the dispersion factor.
+
+# Part E. Modeling the wine quality as a multinomial variable with order
+
+## E.1 In Part E, we will use the original wine quality variable as our response variable. How many categories does this variable contain? How many categories do we actually observe? Plot a histogram showing the distribution of this quality variable.
+```{r}
+# Load wine dataset to get back quality variable
+red_wine <- read.csv("winequality-red.csv", sep = ";",header = T)
+```
+
+```{r}
+# Plot histogram
+ggplot(red_wine, aes(x=quality)) + 
+            geom_histogram(aes(y=..density..), color='black', fill = '#F64666',bins = 15)
+```
+The variable quality has 6 categories which can also be seen from the above plot. 
+
+## E.2 What distribution should we use to model this quality variable? Is it continuous, binary, or multinomial? Is there any order between the different ratings?
+Quality variable follows approximately normal distribution. The variable quality is multinomial and ordered with 6 levels..
+
+## E.3 Calculate the correlations between the quality variable and each of the predictors. Note that Pearson correlation may not be a good measure in this situation. Consider using Kendall’s tau.
+
+```{r}
+variables <- c('fixed.acidity','volatile.acidity','citric.acid', 'residual.sugar', 'chlorides', 'free.sulfur.dioxide','total.sulfur.dioxide', 'density', 'pH', 'sulphates', 'alcohol')
+
+kendalls <- data.frame("Variables"=variables,'Kendall'=NA)
+
+for (i in 1:length(variables)) {
+	kendalls[i,2]= cor(red_wine$quality,red_wine[,i],method = 'kendall')
+}
+
+# Sorting the table based on Kenall Correlation value
+kendalls$kendall_abs <- abs(kendalls$Kendall)
+kendalls <- kendalls[order(-kendalls$kendall_abs),]
+kendalls <- subset(kendalls,select = -c(kendall_abs))
+kendalls
+```
+
+## E.4 Hand pick a subset of predictors using the ranking in Step 3 and the knowledge you have built in Parts A-D.
+Based on the above table and information we have from Parts A-D, we would remove fixed.acidity and residual.sugar in addition to initially removed variables.
+
+We are dropping residual.sugar and fixed.acidity since it has a correlation value < 0.1.
+
+Final list of covariates: alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + density
+
+## E.5 Use the predictors you picked in Step 4 to fit a model for the quality response. What model should we use? Why? Present the model fitting result and discuss the implications.
+
+We should use a proportional odds model since our response variable is multinomial ordinal. 
+```{r}
+# Convert quality to ordinal
+red_wine$quality <- ordered(red_wine$quality, levels=3:8)
+```
+
+
+```{r}
+# Fitting a model
+model_m <- vglm(formula = quality ~ alcohol + volatile.acidity + sulphates + total.sulfur.dioxide + chlorides + density, family=cumulative(parallel=T),red_wine)
+summary(model_m)
+```
+For a proportional odds model, we get (k-1) intercepts, where k = number of orders in response variable Y (k=6 in our case).
+
+The coefficients of proportional odds model can be interpreted using following example:
+Consider the variable alcohol.
+For unit increase in alcohol, the log odds of probability of quality <= (ord)i will increase by Ci,
+where (ord)i is ith order. Quality = 3 will be 1st order, quality = 4 will be 2nd order.
+Ci is the ith intercept from the model summary.
+
+For alcohol, probability of quality <= 3 will be equal to ilogit(-130.70433 - 0.776x), where x is alcohol level.
+Using other intercepts from model, we can gauge the impact of other variables on our response variable quality.
+
+## E.6 Compare the conclusions you draw in Step 5 and those you drew from the logistic regression you built for the variable “excellent”. Are there any similarities and differences?
+
+On comparing above model with the logistic regression model, we observe that the sign of all coefficients has changed.
+This is because in vlgm model, beta gives the change in probability of outcome being less than each level in ordered data.
+
+Since we are working on a proportional odds model, the beta is same for all levels.
+
+For example, in an ordered data with possible outcomes in (1,2,3), assume beta for some predictor variable x, then unit increase in x will increase the log odds of outcome y <= 1 , and eventually its probability. It will also increase the probability of outcome y <= 2.
+Probability of y <=3 = 1 - other 2 probabilities. Thus by increasing the 2 probabilities, we are decreasing the probability of y <= 3.
+
+Similarly, if the beta is negative for x, unit increase in x will decrease the probabilities for y<=1, y<=2 and thus increase the probability of y<=3.
+
+This explains the change in signs of coefficients between logistic and ordered multinomial regression models. 
+
+In logistic regression, positive coefficient implies that increase in the variable will lead to an increase in probability of desired outcome.
+The outcome is reversed in case of proportional odds model due to the interpretation of its coefficients.  
+
+## E.7 Can we use the model you built in Step 5 to predict whether or not a bottle of wine is “excellent” (rating is at least 7)? If yes, how? How do you evaluate the prediction result? How does the result compare to that based on the logistic regression model (Part C)?
+
+Yes, we can use the model built in step 5 to predict whether or not a bottle of wine is excellent.
+First, we will use the proportional odds model to predict probabilities of each level and then use it to determine the quality.
+
+Once we have the quality of a particular wine bottle, we can determine whether it is excellent or not depending on if it is less than greater than equal to 7.
+
+To evaluate the prediction result, we can predict data for given set of samples and form a confusion matrix using observed values of qualities or with outcomes of logistic regression model prediction. This matrix can then be used to calculate the misclassification rate.
+
+To evaluate the prediction result, we can predict data for given set of samples and form a confusion matrix using observed values of qualities or with outcomes of logistic regression model prediction. This matrix can then be used to calculate the misclassification rate.
+
+We can also predict the quality for 2 samples we used earlier and compare with their observed values.
+
+```{r}
+# Sample 1
+pred_1 <- predict(model_m, newdata = red_wine[1,], "response") 
+ifelse(sum(pred_1[,1:4]) > 0.5,0,1)
+
+# Sample 2
+pred_268 <- predict(model_m, newdata = red_wine[268,], "response") 
+ifelse(sum(pred_268[,1:4]) > 0.5,0,1)
+```
+The results obtained are consistent with the observed values of these wine bottles.
+
+We can also compare predictions for logistic and proportional odds model.
+```{r}
+red_wine <- read.csv("winequality-red.csv", sep = ";",header = T)
+red_wine$quality <- ordered(red_wine$quality, levels=3:8)
+
+# Converting quality to excellent
+red_wine$excellent <- as.factor(ifelse(red_wine$quality>6,1,0))
+red_wine <- subset(red_wine,select = -c(quality))
+red_wine_n <- red_wine
+
+# Predict outcome using logistic regression
+red_wine_n$predprob_l <- predict(model_final,red_wine,type='response')
+red_wine_n$pred_l <- ifelse(red_wine_n$predprob_l>0.5,1,0)
+
+# Predict outcome using proportional odds model
+predprob_m <- predict(model_m,red_wine,type='response')
+predprob_m <- as.data.frame(predprob_m)
+
+n <- nrow(predprob_m)
+
+for (i in 1:n) {
+	predprob_m$max[i] = max(predprob_m[i,1:6])
+	predprob_m$exc[i] <- ifelse(sum(predprob_m[i,1:4]) > 0.5,0,1)
+}
+
+
+misc <- table(red_wine_n$pred_l, predprob_m$exc, dnn=c("Logistic","VGLM"))
+miscr <- (misc[1,2]+misc[2,1])/sum(misc)
+miscr
+```
+There is a difference of 2.62% between the predictions by proportional odds model and earlier logistic regression model. 
+Thus we can conclude that the new model performs well in terms of prediction result when compared to logistic model.
+
+
+
+
+
+
